@@ -11,19 +11,16 @@ namespace AsyncSuffixAnalyzer.Test
     [TestClass]
     public class UnitTest : CodeFixVerifier
     {
-
-        //No diagnostics expected to show up
         [TestMethod]
-        public void TestMethod1()
+        public void EmptySourceTriggerNoDiagnostic()
         {
             var test = @"";
 
             VerifyCSharpDiagnostic(test);
         }
-
-        //Diagnostic and CodeFix both triggered and checked for
+        
         [TestMethod]
-        public void TestMethod2()
+        public void MethodReturningGenericTaskWithoutTheSuffixProducesDiagnosticAndFix()
         {
             var test = @"
     using System;
@@ -37,16 +34,20 @@ namespace AsyncSuffixAnalyzer.Test
     {
         class TypeName
         {   
+            public Task<int> DoStuff()
+            {
+                return Task.FromResult(5);
+            }
         }
     }";
             var expected = new DiagnosticResult
             {
-                Id = "AsyncSuffixAnalyzer",
-                Message = String.Format("Type name '{0}' contains lowercase letters", "TypeName"),
+                Id = "ASA001",
+                Message = "Async method name 'DoStuff' should end with 'Async' as the method returns Task",
                 Severity = DiagnosticSeverity.Warning,
                 Locations =
                     new[] {
-                            new DiagnosticResultLocation("Test0.cs", 11, 15)
+                            new DiagnosticResultLocation("Test0.cs", 13, 30)
                         }
             };
 
@@ -62,11 +63,70 @@ namespace AsyncSuffixAnalyzer.Test
 
     namespace ConsoleApplication1
     {
-        class TYPENAME
+        class TypeName
         {   
+            public Task<int> DoStuffAsync()
+            {
+                return Task.FromResult(5);
+            }
         }
     }";
-            VerifyCSharpFix(test, fixtest);
+            // VerifyCSharpFix(test, fixtest);
+        }
+
+        [TestMethod]
+        public void MethodNotReturningTaskWithTheSuffixProducesDiagnosticAndFix()
+        {
+            var test = @"
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using System.Diagnostics;
+
+    namespace ConsoleApplication1
+    {
+        class TypeName
+        {   
+            public Int32 DoStuffAsync()
+            {
+                return Task.FromResult(5);
+            }
+        }
+    }";
+            var expected = new DiagnosticResult
+            {
+                Id = "ASA002",
+                Message = "Method 'DoStuffAsync' returns Int32 and so it should rather be called 'DoStuff'",
+                Severity = DiagnosticSeverity.Warning,
+                Locations =
+                    new[] {
+                            new DiagnosticResultLocation("Test0.cs", 13, 26)
+                        }
+            };
+
+            VerifyCSharpDiagnostic(test, expected);
+
+            var fixtest = @"
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using System.Diagnostics;
+
+    namespace ConsoleApplication1
+    {
+        class TypeName
+        {   
+            public Task<int> DoStuffAsync()
+            {
+                return Task.FromResult(5);
+            }
+        }
+    }";
+            // VerifyCSharpFix(test, fixtest);
         }
 
         protected override CodeFixProvider GetCSharpCodeFixProvider()
@@ -76,7 +136,7 @@ namespace AsyncSuffixAnalyzer.Test
 
         protected override DiagnosticAnalyzer GetCSharpDiagnosticAnalyzer()
         {
-            return new AsyncSuffixAnalyzerAnalyzer();
+            return new AsyncSuffixAnalyzer();
         }
     }
 }

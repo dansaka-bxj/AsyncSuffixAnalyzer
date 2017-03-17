@@ -18,11 +18,11 @@ namespace AsyncSuffixAnalyzer
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AsyncSuffixAnalyzerCodeFixProvider)), Shared]
     public class AsyncSuffixAnalyzerCodeFixProvider : CodeFixProvider
     {
-        private const string title = "Make uppercase";
+        private const string title = "Add 'Async' to method name";
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(AsyncSuffixAnalyzerAnalyzer.DiagnosticId); }
+            get { return ImmutableArray.Create(AsyncSuffixAnalyzer.MissingSuffixDiagnosticId); }
         }
 
         public sealed override FixAllProvider GetFixAllProvider()
@@ -34,8 +34,7 @@ namespace AsyncSuffixAnalyzer
         public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
         {
             var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
-
-            // TODO: Replace the following code with your own analysis, generating a CodeAction for each fix to suggest
+            
             var diagnostic = context.Diagnostics.First();
             var diagnosticSpan = diagnostic.Location.SourceSpan;
 

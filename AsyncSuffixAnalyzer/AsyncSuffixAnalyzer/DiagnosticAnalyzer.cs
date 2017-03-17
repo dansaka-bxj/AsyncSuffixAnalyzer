@@ -7,45 +7,90 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using System.Threading.Tasks;
 
 namespace AsyncSuffixAnalyzer
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class AsyncSuffixAnalyzerAnalyzer : DiagnosticAnalyzer
+    public class AsyncSuffixAnalyzer : DiagnosticAnalyzer
     {
-        public const string DiagnosticId = "AsyncSuffixAnalyzer";
-
-        // You can change these strings in the Resources.resx file. If you do not want your analyzer to be localize-able, you can use regular strings for Title and MessageFormat.
-        // See https://github.com/dotnet/roslyn/blob/master/docs/analyzers/Localizing%20Analyzers.md for more on localization
-        private static readonly LocalizableString Title = new LocalizableResourceString(nameof(Resources.AnalyzerTitle), Resources.ResourceManager, typeof(Resources));
-        private static readonly LocalizableString MessageFormat = new LocalizableResourceString(nameof(Resources.AnalyzerMessageFormat), Resources.ResourceManager, typeof(Resources));
-        private static readonly LocalizableString Description = new LocalizableResourceString(nameof(Resources.AnalyzerDescription), Resources.ResourceManager, typeof(Resources));
         private const string Category = "Naming";
 
-        private static DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Warning, isEnabledByDefault: true, description: Description);
+        public const string MissingSuffixDiagnosticId = "ASA001";
+        private static readonly string MissingSuffixTitle = "Async method names ends with 'Async' suffix";
+        private static readonly string MissingSuffixMessageFormat = "Async method name '{0}' should end with 'Async' as the method returns {1}";
+        private static readonly string MissingSuffixDescription = "Async method names ends with 'Async' suffix";
+        private static DiagnosticDescriptor MissingSuffixRule = new DiagnosticDescriptor(MissingSuffixDiagnosticId, MissingSuffixTitle, MissingSuffixMessageFormat, Category, DiagnosticSeverity.Warning, isEnabledByDefault: true, description: MissingSuffixDescription);
 
-        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(Rule); } }
+        public const string MissingTaskDiagnosticId = "ASA002";
+        private static readonly string MissingTaskTitle = "Method that does not return some kind of Task should not have name that ends with 'Async' suffix";
+        private static readonly string MissingTaskMessageFormat = "Method '{0}' returns {1} and so it should rather be called '{2}'";
+        private static readonly string MissingTaskDescription = "Method that does not return some kind of Task should not have name that ends with 'Async' suffix";
+        private static DiagnosticDescriptor MissingTaskRule = new DiagnosticDescriptor(MissingTaskDiagnosticId, MissingTaskTitle, MissingTaskMessageFormat, Category, DiagnosticSeverity.Warning, isEnabledByDefault: true, description: MissingTaskDescription);
+
+        public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(MissingSuffixRule, MissingTaskRule); } }
 
         public override void Initialize(AnalysisContext context)
         {
-            // TODO: Consider registering other actions that act on syntax instead of or in addition to symbols
-            // See https://github.com/dotnet/roslyn/blob/master/docs/analyzers/Analyzer%20Actions%20Semantics.md for more information
-            context.RegisterSymbolAction(AnalyzeSymbol, SymbolKind.NamedType);
+            context.RegisterSyntaxNodeAction(AnalyzeMethodDeclaration, SyntaxKind.MethodDeclaration);
         }
 
-        private static void AnalyzeSymbol(SymbolAnalysisContext context)
+        private static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
         {
-            // TODO: Replace the following code with your own analysis, generating Diagnostic objects for any issues you find
-            var namedTypeSymbol = (INamedTypeSymbol)context.Symbol;
-
-            // Find just those named type symbols with names containing lowercase letters.
-            if (namedTypeSymbol.Name.ToCharArray().Any(char.IsLower))
+            var methodDeclaration = context.Node as MethodDeclarationSyntax;
+            if (methodDeclaration == null)
             {
-                // For all such symbols, produce a diagnostic.
-                var diagnostic = Diagnostic.Create(Rule, namedTypeSymbol.Locations[0], namedTypeSymbol.Name);
-
-                context.ReportDiagnostic(diagnostic);
+                return;
             }
+
+            var (doesReturnTask, returnTypeName) = DoesReturnTask(methodDeclaration);
+            if (doesReturnTask == true)
+            {
+                // Method is tasked, async suffix is necessary
+                if (!DoesEndWithAsync(methodDeclaration))
+                {
+                    context.ReportDiagnostic(
+                        Diagnostic.Create(
+                            MissingSuffixRule,
+                            methodDeclaration.Identifier.GetLocation(),
+                            methodDeclaration.Identifier.ValueText,
+                            returnTypeName));
+                }
+            }
+            else if (doesReturnTask == false)
+            {
+                // Async suffix should not be there
+                if (DoesEndWithAsync(methodDeclaration))
+                {
+                    var methodName = methodDeclaration.Identifier.ValueText;
+
+                    context.ReportDiagnostic(
+                        Diagnostic.Create(
+                            MissingTaskRule,
+                            methodDeclaration.Identifier.GetLocation(),
+                            methodName,
+                            returnTypeName,
+                            methodName.Substring(0, methodName.Length - "Async".Length)));
+                }
+            }
+        }
+        
+        private static (bool? doesReturnTask, string returnTypeName) DoesReturnTask(MethodDeclarationSyntax syntax)
+        {
+            var returnType = syntax.ReturnType as SimpleNameSyntax;
+            var returnTypeName = returnType?.Identifier.Value as string;
+
+            if (returnTypeName == null)
+            {
+                return (null, "");
+            }
+
+            return (returnTypeName == "Task" || returnTypeName == "ValueTask", returnTypeName);
+        }
+
+        private static bool DoesEndWithAsync(MethodDeclarationSyntax syntax)
+        {
+            return syntax.Identifier.ValueText.EndsWith("Async");
         }
     }
 }
