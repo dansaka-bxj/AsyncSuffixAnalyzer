@@ -71,7 +71,7 @@ namespace AsyncSuffixAnalyzer.Test
             }
         }
     }";
-            // VerifyCSharpFix(test, fixtest);
+            VerifyCSharpFix(test, fixtest);
         }
 
         [TestMethod]
@@ -120,13 +120,13 @@ namespace AsyncSuffixAnalyzer.Test
     {
         class TypeName
         {   
-            public Task<int> DoStuffAsync()
+            public Int32 DoStuff()
             {
                 return Task.FromResult(5);
             }
         }
     }";
-            // VerifyCSharpFix(test, fixtest);
+            VerifyCSharpFix(test, fixtest);
         }
 
         [TestMethod]
@@ -146,7 +146,7 @@ namespace AsyncSuffixAnalyzer.Test
         {   
             public void DoStuffAsync()
             {
-                return Task.FromResult(5);
+                return;
             }
         }
     }";
@@ -175,13 +175,13 @@ namespace AsyncSuffixAnalyzer.Test
     {
         class TypeName
         {   
-            public async Task<int> DoStuffAsync()
+            public void DoStuff()
             {
                 return;
             }
         }
     }";
-            // VerifyCSharpFix(test, fixtest);
+            VerifyCSharpFix(test, fixtest);
         }
 
         [TestMethod]
@@ -230,13 +230,13 @@ namespace AsyncSuffixAnalyzer.Test
     {
         class TypeName
         {   
-            public Task<int> DoStuffAsync()
+            public int DoStuff()
             {
                 return Task.FromResult(5);
             }
         }
     }";
-            // VerifyCSharpFix(test, fixtest);
+            VerifyCSharpFix(test, fixtest);
         }
 
         protected override CodeFixProvider GetCSharpCodeFixProvider()
