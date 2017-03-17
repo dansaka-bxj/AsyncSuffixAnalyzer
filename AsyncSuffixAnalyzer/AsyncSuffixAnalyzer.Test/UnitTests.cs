@@ -129,6 +129,116 @@ namespace AsyncSuffixAnalyzer.Test
             // VerifyCSharpFix(test, fixtest);
         }
 
+        [TestMethod]
+        public void MethodReturingVoidWithTheSuffixProducesDiagnosticAndFix()
+        {
+            var test = @"
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using System.Diagnostics;
+
+    namespace ConsoleApplication1
+    {
+        class TypeName
+        {   
+            public void DoStuffAsync()
+            {
+                return Task.FromResult(5);
+            }
+        }
+    }";
+            var expected = new DiagnosticResult
+            {
+                Id = "ASA002",
+                Message = "Method 'DoStuffAsync' returns void and so it should rather be called 'DoStuff'",
+                Severity = DiagnosticSeverity.Warning,
+                Locations =
+                    new[] {
+                            new DiagnosticResultLocation("Test0.cs", 13, 25)
+                        }
+            };
+
+            VerifyCSharpDiagnostic(test, expected);
+
+            var fixtest = @"
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using System.Diagnostics;
+
+    namespace ConsoleApplication1
+    {
+        class TypeName
+        {   
+            public async Task<int> DoStuffAsync()
+            {
+                return;
+            }
+        }
+    }";
+            // VerifyCSharpFix(test, fixtest);
+        }
+
+        [TestMethod]
+        public void MethodReturingKeywordIntWithTheSuffixProducesDiagnosticAndFix()
+        {
+            var test = @"
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using System.Diagnostics;
+
+    namespace ConsoleApplication1
+    {
+        class TypeName
+        {   
+            public int DoStuffAsync()
+            {
+                return Task.FromResult(5);
+            }
+        }
+    }";
+            var expected = new DiagnosticResult
+            {
+                Id = "ASA002",
+                Message = "Method 'DoStuffAsync' returns int and so it should rather be called 'DoStuff'",
+                Severity = DiagnosticSeverity.Warning,
+                Locations =
+                    new[] {
+                            new DiagnosticResultLocation("Test0.cs", 13, 24)
+                        }
+            };
+
+            VerifyCSharpDiagnostic(test, expected);
+
+            var fixtest = @"
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using System.Diagnostics;
+
+    namespace ConsoleApplication1
+    {
+        class TypeName
+        {   
+            public Task<int> DoStuffAsync()
+            {
+                return Task.FromResult(5);
+            }
+        }
+    }";
+            // VerifyCSharpFix(test, fixtest);
+        }
+
         protected override CodeFixProvider GetCSharpCodeFixProvider()
         {
             return new AsyncSuffixAnalyzerCodeFixProvider();

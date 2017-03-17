@@ -80,6 +80,11 @@ namespace AsyncSuffixAnalyzer
             var returnType = syntax.ReturnType as SimpleNameSyntax;
             var returnTypeName = returnType?.Identifier.Value as string;
 
+            if (syntax.ReturnType is PredefinedTypeSyntax)
+            {
+                returnTypeName = ((PredefinedTypeSyntax)syntax.ReturnType).Keyword.ValueText;
+            }
+
             if (returnTypeName == null)
             {
                 return (null, "");
