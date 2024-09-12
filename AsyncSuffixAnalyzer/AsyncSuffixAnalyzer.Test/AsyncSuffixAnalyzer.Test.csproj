@@ -62,5 +62,13 @@
       <Name>AsyncSuffixAnalyzer</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces">
+      <Version>1.0.1</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces">
+      <Version>1.0.1</Version>
+    </PackageReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
