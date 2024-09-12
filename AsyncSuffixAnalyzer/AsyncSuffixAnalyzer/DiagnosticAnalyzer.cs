@@ -90,7 +90,7 @@ namespace AsyncSuffixAnalyzer
                 return (null, "");
             }
 
-            return (returnTypeName == "Task" || returnTypeName == "ValueTask", returnTypeName);
+            return (returnTypeName == "Task" || returnTypeName == "ValueTask" || returnTypeName == "UniTask", returnTypeName);
         }
 
         private static bool DoesEndWithAsync(MethodDeclarationSyntax syntax)
